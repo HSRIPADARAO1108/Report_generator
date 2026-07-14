@@ -35,7 +35,6 @@ def create_overlay(name, usn):
     can.rect(100, 380, 420, 50, fill=True, stroke=False) 
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    # Stamped lower (y=395)
     can.drawString(110, 395, name.upper())
     can.drawString(400, 395, usn.upper())
     can.showPage()
@@ -46,9 +45,9 @@ def create_overlay(name, usn):
     
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    # Stamped lower (y=400)
+    # Name at x=90, USN shifted left to x=400 (was 460)
     can.drawString(90, 400, name.upper())
-    can.drawString(460, 400, usn.upper())
+    can.drawString(400, 400, usn.upper())
     
     can.showPage()
     can.save()
