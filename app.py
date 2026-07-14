@@ -17,7 +17,7 @@ st.markdown("""
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
 
-# 1. Lab Selection
+# 1. Select Lab
 lab_choice = st.selectbox("Select the Laboratory Course:", ["BDA (Big Data Analytics)", "ADBMS (Advanced DBMS)"])
 manual_path = "BDA_Manual.pdf" if "BDA" in lab_choice else "ADBMS_Manual.pdf"
 
@@ -31,21 +31,27 @@ def create_overlay(name, usn):
     can = canvas.Canvas(packet, pagesize=letter)
     
     # --- PAGE 1: COVER ---
+    # Mask area: (x, y, width, height)
     can.setFillColorRGB(1, 1, 1)
-    can.rect(120, 380, 380, 50, fill=True, stroke=False) 
+    can.rect(100, 380, 420, 50, fill=True, stroke=False) 
+    
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    can.drawCentredString(306, 405, name.upper())
-    can.drawCentredString(306, 385, usn.upper())
+    # Side-by-Side: Name starts at 110, USN starts at 400 on the same Y-axis (405)
+    can.drawString(110, 405, name.upper())
+    can.drawString(400, 405, usn.upper())
     can.showPage()
     
     # --- PAGE 2: CERTIFICATE ---
+    # Mask area: Covers the specific name/USN line
     can.setFillColorRGB(1, 1, 1)
-    can.rect(90, 405, 420, 20, fill=True, stroke=False)
+    can.rect(90, 400, 450, 30, fill=True, stroke=False)
+    
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    can.drawString(98, 408, name.upper())
-    can.drawRightString(510, 408, usn.upper())
+    # Side-by-Side: Name starts at 98, USN starts at 450 on the same Y-axis (410)
+    can.drawString(98, 410, name.upper())
+    can.drawString(450, 410, usn.upper())
     
     can.showPage()
     can.save()
