@@ -1,8 +1,6 @@
 import streamlit as st
 import os
 import io
-import subprocess
-from docx import Document
 from pypdf import PdfReader, PdfWriter
 
 # Page UI properties layout configuration
@@ -45,17 +43,17 @@ st.markdown("Enter your student details below to instantly generate a fully comp
 
 st.markdown("---")
 
-front_template_path = "BDA FRONT PAGE1_merged.docx"
+front_pdf_path = "BDA_FRONT_TEMP.pdf"
 manual_pdf_path = "BAD_Manual_merged.pdf"
 
 # Verify repository readiness state inside the sidebar interface
 st.sidebar.header("📦 System Resource Status")
 resources_ready = True
 
-if os.path.exists(front_template_path):
-    st.sidebar.success("✅ Front Page Word Template Loaded")
+if os.path.exists(front_pdf_path):
+    st.sidebar.success("✅ Front Page PDF Loaded")
 else:
-    st.sidebar.error("❌ Missing: BDA FRONT PAGE1_merged.docx")
+    st.sidebar.error("❌ Missing: BDA_FRONT_TEMP.pdf")
     resources_ready = False
 
 if os.path.exists(manual_pdf_path):
@@ -70,45 +68,30 @@ col1, col2 = st.columns(2)
 student_name = col1.text_input("Full Student Name:", placeholder="e.g. CHETHAN PRASAD L")
 student_usn = col2.text_input("University Seat Number (USN):", placeholder="e.g. 1DA25SCS04")
 
-# Core function to scan paragraph formatting blocks and replace placeholders
-def process_word_template(path, replacement_name, replacement_usn):
-    doc = Document(path)
+# Core function to swap text directly inside the PDF content streams
+def modify_pdf_text(input_pdf_path, old_name_1, old_name_2, old_usn, new_name, new_usn):
+    reader = PdfReader(input_pdf_path)
+    writer = PdfWriter()
     
-    # Original hardcoded placeholders located in your files
-    search_usn = "1DA25SCS18"
-    search_name_1 = "SRIPADA RAO H"
-    search_name_2 = "H SRIPADA RAO"
-    
-    # Loop over standard paragraph runs
-    for para in doc.paragraphs:
-        if search_usn in para.text:
-            for run in para.runs:
-                if search_usn in run.text:
-                    run.text = run.text.replace(search_usn, replacement_usn.upper())
-        if search_name_1 in para.text or search_name_2 in para.text:
-            for run in para.runs:
-                if search_name_1 in run.text:
-                    run.text = run.text.replace(search_name_1, replacement_name.upper())
-                if search_name_2 in run.text:
-                    run.text = run.text.replace(search_name_2, replacement_name.upper())
-
-    # Loop over hidden cells inside tables (signature validation matrices)
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for para in cell.paragraphs:
-                    if search_usn in para.text:
-                        for run in para.runs:
-                            if search_usn in run.text:
-                                run.text = run.text.replace(search_usn, replacement_usn.upper())
-                    if search_name_1 in para.text or search_name_2 in para.text:
-                        for run in para.runs:
-                            if search_name_1 in run.text:
-                                run.text = run.text.replace(search_name_1, replacement_name.upper())
-                            if search_name_2 in run.text:
-                                run.text = run.text.replace(search_name_2, replacement_name.upper())
-                                
-    return doc
+    for page in reader.pages:
+        # Check text contents using page streams natively
+        content = page.get_contents()
+        if content:
+            # Safely extract binary data to replace string encodings
+            data = page.get_contents().get_data()
+            
+            # Perform text structural switches inside the PDF code block
+            if old_usn.encode('utf-8') in data:
+                data = data.replace(old_usn.encode('utf-8'), new_usn.upper().encode('utf-8'))
+            if old_name_1.encode('utf-8') in data:
+                data = data.replace(old_name_1.encode('utf-8'), new_name.upper().encode('utf-8'))
+            if old_name_2.encode('utf-8') in data:
+                data = data.replace(old_name_2.encode('utf-8'), new_name.upper().encode('utf-8'))
+                
+            page.get_contents().set_data(data)
+        writer.add_page(page)
+        
+    return writer
 
 # --- GENERATION PIPELINE ENGINE ---
 if resources_ready:
@@ -116,62 +99,42 @@ if resources_ready:
         st.markdown("---")
         
         if st.button("⚡ Compile & Generate Full Printable Report"):
-            with st.spinner("Processing templates, generating customized cover sheets, and stitching manual pages..."):
-                
-                # Define temporary working files
-                temp_docx = "temp_modified_front.docx"
-                temp_pdf = "temp_modified_front.pdf"
-                final_output = f"{student_usn.upper()}_BDA_Complete_Report.pdf"
-                
+            with st.spinner("Modifying coversheets and binding master manual document streams..."):
                 try:
-                    # 1. Update text metadata directly within the .docx file layers
-                    modified_doc = process_word_template(front_template_path, student_name, student_usn)
-                    modified_doc.save(temp_docx)
+                    # Placeholders inside original files mapping
+                    target_usn = "1DA25SCS18"
+                    target_name_1 = "SRIPADA RAO H"
+                    target_name_2 = "H SRIPADA RAO"
                     
-                    # 2. Cross-platform headless CLI invocation to convert docx to pdf flawlessly
-                    try:
-                        # For Linux/Streamlit environments hosting LibreOffice modules
-                        subprocess.run([
-                            'libreoffice', '--headless', '--convert-to', 'pdf', temp_docx
-                        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    except Exception:
-                        # Fallback for alternative environments utilizing standard conversion scripts
-                        from docx2pdf import convert
-                        convert(temp_docx, temp_pdf)
+                    # 1. Update text metadata directly within the front PDF stream
+                    pdf_writer = modify_pdf_text(
+                        front_pdf_path, target_name_1, target_name_2, target_usn, student_name, student_usn
+                    )
                     
-                    # 3. Stitch the generated front sheets with the core manual using pypdf
-                    pdf_writer = PdfWriter()
-                    
-                    front_reader = PdfReader(temp_pdf)
-                    for page in front_reader.pages:
-                        pdf_writer.add_page(page)
-                        
+                    # 2. Append the main experimental lab manual payload
                     main_manual_reader = PdfReader(manual_pdf_path)
                     for page in main_manual_reader.pages:
                         pdf_writer.add_page(page)
                     
-                    # Save out the complete consolidated file
-                    with open(final_output, "wb") as out_f:
-                        pdf_writer.write(out_f)
+                    # 3. Export data configurations out as a binary asset
+                    final_pdf_io = io.BytesIO()
+                    pdf_writer.write(final_pdf_io)
+                    final_pdf_io.seek(0)
                     
-                    st.success("✨ Complete laboratory report compiled successfully with original coversheets!")
+                    st.success("✨ Laboratory report compiled successfully with original coversheets!")
                     
-                    # 4. Provide the instant file download utility button
-                    with open(final_output, "rb") as final_bytes:
-                        st.download_button(
-                            label="📥 Download Finished Lab Report (PDF)",
-                            data=final_bytes.read(),
-                            file_name=final_output,
-                            mime="application/pdf"
-                        )
-                        
-                    # Clean up workspace cache elements silently
-                    for file in [temp_docx, temp_pdf, final_output]:
-                        if os.path.exists(file):
-                            os.remove(file)
-                            
+                    # 4. Instant system download utility trigger
+                    st.download_button(
+                        label="📥 Download Finished Lab Report (PDF)",
+                        data=final_pdf_io,
+                        file_name=f"{student_usn.upper()}_BDA_Complete_Report.pdf",
+                        mime="application/pdf"
+                    )
+                    
                 except Exception as engine_err:
                     st.error("🚨 An issue occurred during report compilation processing loops.")
                     st.exception(engine_err)
     else:
         st.info("💡 Please type in the Student Name and USN above to activate the automated compiler.")
+else:
+    st.error("🚨 Configuration Error: Ensure both 'BDA_FRONT_TEMP.pdf' and 'BAD_Manual_merged.pdf' are pushed to your GitHub repository.")
