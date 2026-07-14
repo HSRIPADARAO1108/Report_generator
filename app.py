@@ -7,25 +7,41 @@ from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="Dr. AIT Lab Report Compiler", page_icon="🎓", layout="centered")
 
+# MOBILE-OPTIMIZED CSS
 st.markdown("""
     <style>
-    .stApp { background-color: #0f172a; }
+    .stApp { background-color: #0f172a; padding: 10px; }
     h1, h2, h3, p, span, label { color: #f8fafc !important; }
-    div.stButton > button { width: 100%; height: 50px; font-weight: bold; }
+    
+    /* Buttons optimized for touch */
+    div.stButton > button { 
+        width: 100% !important; 
+        height: 60px !important; 
+        font-weight: bold !important; 
+        background-color: #2563eb !important; 
+        color: #ffffff !important;
+        border-radius: 10px !important;
+        margin: 5px 0 !important;
+    }
+    
+    /* Input fields optimized for mobile */
+    .stTextInput > div > div > input {
+        height: 50px !important;
+        font-size: 16px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
 
-# 1. Subject Selection via Buttons
 st.subheader("Select your Laboratory Subject:")
-col_a, col_b = st.columns(2)
-if col_a.button("BDA (Big Data Analytics)"):
+
+# Vertical Stack for mobile-friendly button access
+if st.button("BDA (Big Data Analytics)"):
     st.session_state.manual = "BDA_Manual.pdf"
-if col_b.button("ADBMS (Advanced DBMS)"):
+if st.button("ADBMS (Advanced DBMS)"):
     st.session_state.manual = "ADBMS_Manual.pdf"
 
-# Initialize manual path in session state
 if 'manual' not in st.session_state:
     st.session_state.manual = None
 
@@ -33,9 +49,9 @@ if st.session_state.manual:
     st.info(f"Selected: {st.session_state.manual.replace('_Manual.pdf', '')}")
     
     st.markdown("---")
-    col1, col2 = st.columns(2)
-    student_name = col1.text_input("Full Student Name:")
-    student_usn = col2.text_input("University Seat Number (USN):")
+    # Stacked inputs for better mobile usage
+    student_name = st.text_input("Full Student Name:")
+    student_usn = st.text_input("University Seat Number (USN):")
 
     def create_overlay(name, usn):
         packet = io.BytesIO()
@@ -85,4 +101,4 @@ if st.session_state.manual:
                 st.download_button("📥 Download Final Report", final_io, 
                                    f"{student_usn.upper()}_Report.pdf", "application/pdf")
         else:
-            st.error(f"Error: Make sure {st.session_state.manual} is uploaded and fields are filled.")
+            st.error("Please ensure you entered Name, USN, and selected a subject.")
