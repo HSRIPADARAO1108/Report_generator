@@ -5,38 +5,42 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-st.set_page_config(page_title="Dr. AIT Lab Report Compiler", page_icon="🎓", layout="centered")
+st.set_config(page_title="Dr. AIT Lab Report Compiler", layout="centered")
 
-# MOBILE-OPTIMIZED CSS
+# UPDATED CSS: High-contrast Clean Theme
 st.markdown("""
     <style>
-    .stApp { background-color: #0f172a; padding: 10px; }
-    h1, h2, h3, p, span, label { color: #f8fafc !important; }
+    /* Global Background: Clean White */
+    .stApp { background-color: #ffffff !important; }
     
-    /* Buttons optimized for touch */
+    /* Text: Dark Grey for maximum readability */
+    h1, h2, h3, p, span, label { color: #1e293b !important; }
+    
+    /* Buttons: Professional Dark Navy, White Text */
     div.stButton > button { 
         width: 100% !important; 
-        height: 60px !important; 
-        font-weight: bold !important; 
-        background-color: #2563eb !important; 
+        height: 55px !important; 
+        font-weight: 600 !important; 
+        background-color: #0f172a !important; 
         color: #ffffff !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
+        border: none !important;
         margin: 5px 0 !important;
     }
     
-    /* Input fields optimized for mobile */
+    /* Inputs: Clean professional borders */
     .stTextInput > div > div > input {
-        height: 50px !important;
+        border: 2px solid #cbd5e1 !important;
+        border-radius: 6px !important;
         font-size: 16px !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
-
 st.subheader("Select your Laboratory Subject:")
 
-# Vertical Stack for mobile-friendly button access
+# Vertical stack of buttons for easy mobile access
 if st.button("BDA (Big Data Analytics)"):
     st.session_state.manual = "BDA_Manual.pdf"
 if st.button("ADBMS (Advanced DBMS)"):
@@ -47,9 +51,8 @@ if 'manual' not in st.session_state:
 
 if st.session_state.manual:
     st.info(f"Selected: {st.session_state.manual.replace('_Manual.pdf', '')}")
-    
     st.markdown("---")
-    # Stacked inputs for better mobile usage
+    
     student_name = st.text_input("Full Student Name:")
     student_usn = st.text_input("University Seat Number (USN):")
 
@@ -97,8 +100,8 @@ if st.session_state.manual:
                 writer.write(final_io)
                 final_io.seek(0)
                 
-                st.success("✨ Report Compiled Successfully!")
+                st.success("✨ Success! Click below to download.")
                 st.download_button("📥 Download Final Report", final_io, 
                                    f"{student_usn.upper()}_Report.pdf", "application/pdf")
         else:
-            st.error("Please ensure you entered Name, USN, and selected a subject.")
+            st.error("Please ensure you entered your Name, USN, and selected a subject.")
