@@ -76,30 +76,31 @@ def create_overlay_pdf(name, usn):
     can = canvas.Canvas(packet, pagesize=letter)
     
     # ------------------ PAGE 1 OVERLAY (Cover Page) ------------------
-    # Hide the old student row cleanly with a white mask block
+    # Completely mask the old student text line on the cover page
     can.setFillColorRGB(1, 1, 1)
-    can.rect(100, 390, 420, 40, fill=True, stroke=False)
+    can.rect(80, 385, 450, 45, fill=True, stroke=False)
     
-    # Write the new text using Times-Bold at Font Size 14
+    # Write the newly entered credentials in Times-Bold 14
     can.setFillColorRGB(0.0, 0.0, 0.0) 
     can.setFont("Times-Bold", 14)
     display_text_p1 = f"{name.upper()}      {usn.upper()}"
     can.drawCentredString(306, 404, display_text_p1)
     
-    can.showPage() # Push canvas stream to process next page
+    can.showPage() # Target the certificate page next
     
     # ------------------ PAGE 2 OVERLAY (Certificate Page) ------------------
-    # 1. Shifted down and broadened the mask block to 100% cover "H SRIPADA RAO       1DA25SCS18"
+    # Expanded white mask block to fully erase "SRIPADA RAO H       1DA25SCS18"
+    # Adjusted coordinates (lower down and taller) to cover all traces of the old text completely
     can.setFillColorRGB(1, 1, 1)
-    can.rect(90, 420, 440, 30, fill=True, stroke=False)
+    can.rect(75, 400, 460, 40, fill=True, stroke=False)
     
-    # 2. Stamp only the newly entered data precisely onto the cleaned certificate field
+    # Stamp only the newly entered data beautifully aligned across the line
     can.setFillColorRGB(0.0, 0.0, 0.0)
     can.setFont("Times-Bold", 14)
     
-    # Spacing out the Name and USN beautifully across the certificate layout line
-    can.drawString(98, 430, name.upper())
-    can.drawRightString(510, 430, usn.upper())
+    # Places the new Name on the left, and the new USN perfectly on the right
+    can.drawString(98, 412, name.upper())
+    can.drawRightString(510, 412, usn.upper())
     
     can.showPage()
     can.save()
@@ -112,7 +113,7 @@ if resources_ready:
         st.markdown("---")
         
         if st.button("⚡ Compile & Generate Full Printable Report"):
-            with st.spinner("Erasing old metadata and applying new credentials..."):
+            with st.spinner("Completely removing old credentials and applying new text fields..."):
                 try:
                     # 1. Generate the customized Times text layers stream
                     overlay_stream = create_overlay_pdf(student_name, student_usn)
@@ -143,7 +144,7 @@ if resources_ready:
                     pdf_writer.write(final_pdf_io)
                     final_pdf_io.seek(0)
                     
-                    st.success("✨ Report successfully compiled! Old credentials erased and updated perfectly.")
+                    st.success("✨ Report successfully compiled! Old credentials completely wiped and updated perfectly.")
                     
                     # Download trigger
                     st.download_button(
