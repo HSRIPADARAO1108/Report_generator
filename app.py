@@ -17,7 +17,7 @@ st.markdown("""
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
 
-# 1. Select Lab
+# 1. Lab Selection
 lab_choice = st.selectbox("Select the Laboratory Course:", ["BDA (Big Data Analytics)", "ADBMS (Advanced DBMS)"])
 manual_path = "BDA_Manual.pdf" if "BDA" in lab_choice else "ADBMS_Manual.pdf"
 
@@ -31,7 +31,6 @@ def create_overlay(name, usn):
     can = canvas.Canvas(packet, pagesize=letter)
     
     # --- PAGE 1: COVER ---
-    # Precise mask for Name/USN area
     can.setFillColorRGB(1, 1, 1)
     can.rect(120, 380, 380, 50, fill=True, stroke=False) 
     can.setFillColorRGB(0, 0, 0)
@@ -41,7 +40,6 @@ def create_overlay(name, usn):
     can.showPage()
     
     # --- PAGE 2: CERTIFICATE ---
-    # Precise mask for name/USN line
     can.setFillColorRGB(1, 1, 1)
     can.rect(90, 405, 420, 20, fill=True, stroke=False)
     can.setFillColorRGB(0, 0, 0)
@@ -54,11 +52,8 @@ def create_overlay(name, usn):
     packet.seek(0)
     return packet
 
-# 2. Compilation Engine
-if 'compiled_pdf_io' not in st.session_state:
-    st.session_state.compiled_pdf_io = None
-
-if st.button("⚡ Compile Report"):
+# 2. Compilation & Download
+if st.button("⚡ Generate & Download PDF"):
     if student_name and student_usn and os.path.exists(manual_path):
         with st.spinner("Processing..."):
             overlay_stream = create_overlay(student_name, student_usn)
@@ -75,25 +70,13 @@ if st.button("⚡ Compile Report"):
             final_io = io.BytesIO()
             writer.write(final_io)
             final_io.seek(0)
-            st.session_state.compiled_pdf_io = final_io
-            st.success("✨ Report Compiled! Scroll down to preview.")
+            
+            st.success("✨ Report Compiled Successfully!")
+            st.download_button(
+                label="📥 Download Final Report",
+                data=final_io,
+                file_name=f"{student_usn.upper()}_Report.pdf",
+                mime="application/pdf"
+            )
     else:
         st.error(f"Error: Missing {manual_path} or fields are empty.")
-
-# 3. Preview & Download
-if st.session_state.compiled_pdf_io:
-    st.markdown("---")
-    st.subheader("👁️ Preview Report")
-    
-    # Safely get bytes for preview
-    pdf_bytes = st.session_state.compiled_pdf_io.getvalue()
-    st.pdf(pdf_bytes)
-    
-    # Download button
-    st.session_state.compiled_pdf_io.seek(0)
-    st.download_button(
-        label="📥 Download Final Report",
-        data=st.session_state.compiled_pdf_io,
-        file_name=f"{student_usn.upper()}_Report.pdf",
-        mime="application/pdf"
-    )
