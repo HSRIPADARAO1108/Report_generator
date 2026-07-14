@@ -17,7 +17,6 @@ st.markdown("""
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
 
-# 1. Lab Selection
 lab_choice = st.selectbox("Select the Laboratory Course:", ["BDA (Big Data Analytics)", "ADBMS (Advanced DBMS)"])
 manual_path = "BDA_Manual.pdf" if "BDA" in lab_choice else "ADBMS_Manual.pdf"
 
@@ -30,24 +29,18 @@ def create_overlay(name, usn):
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=letter)
     
-    # --- PAGE 1: COVER ---
-    # Mask area: (x, y, width, height) - Covers SRIPADA RAO H and USN
+    # Page 1 Mask & Stamp
     can.setFillColorRGB(1, 1, 1)
     can.rect(100, 380, 420, 50, fill=True, stroke=False) 
-    
-    # Stamp new info
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
     can.drawCentredString(306, 405, name.upper())
     can.drawCentredString(306, 385, usn.upper())
     can.showPage()
     
-    # --- PAGE 2: CERTIFICATE ---
-    # Mask area: Covers name and USN line
+    # Page 2 Mask & Stamp
     can.setFillColorRGB(1, 1, 1)
     can.rect(80, 400, 450, 30, fill=True, stroke=False)
-    
-    # Stamp new info
     can.setFont("Times-Bold", 14)
     can.drawString(98, 408, name.upper())
     can.drawRightString(510, 408, usn.upper())
@@ -58,8 +51,8 @@ def create_overlay(name, usn):
     return packet
 
 # 2. Compilation Engine
-if 'compiled_pdf' not in st.session_state:
-    st.session_state.compiled_pdf = None
+if 'compiled_pdf_io' not in st.session_state:
+    st.session_state.compiled_pdf_io = None
 
 if st.button("⚡ Compile Report"):
     if student_name and student_usn and os.path.exists(manual_path):
@@ -76,16 +69,27 @@ if st.button("⚡ Compile Report"):
                     page.merge_page(overlay.pages[i])
                 writer.add_page(page)
             
+            # Store the BytesIO object directly in session state
             final_io = io.BytesIO()
             writer.write(final_io)
-            st.session_state.compiled_pdf = final_io.getvalue()
+            final_io.seek(0)
+            st.session_state.compiled_pdf_io = final_io
             st.success("✨ Report Compiled! Scroll down to preview.")
     else:
-        st.error(f"Error: Missing {manual_path} or fields empty.")
+        st.error(f"Error: Ensure {manual_path} exists and fields are filled.")
 
 # 3. Preview & Download
-if st.session_state.compiled_pdf:
+if st.session_state.compiled_pdf_io:
     st.markdown("---")
     st.subheader("👁️ Preview Report")
-    st.pdf(st.session_state.compiled_pdf)
-    st.download_button("📥 Download Final Report", st.session_state.compiled_pdf, f"{student_usn.upper()}_Report.pdf", "application/pdf")
+    # Now passing the BytesIO object which st.pdf() supports
+    st.pdf(st.session_state.compiled_pdf_io)
+    
+    # Reset pointer for download
+    st.session_state.compiled_pdf_io.seek(0)
+    st.download_button(
+        label="📥 Download Final Report",
+        data=st.session_state.compiled_pdf_io,
+        file_name=f"{student_usn.upper()}_Report.pdf",
+        mime="application/pdf"
+    )
