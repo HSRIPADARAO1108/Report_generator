@@ -1,3 +1,4 @@
 streamlit
+python-docx
 pypdf
-reportlab
+docx2pdf
