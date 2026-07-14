@@ -5,100 +5,68 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-# Page configurations
-st.set_page_config(
-    page_title="Dr. AIT BDA Report Generator", 
-    page_icon="🎓", 
-    layout="centered"
-)
+# Page configuration
+st.set_page_config(page_title="Dr. AIT Lab Report Compiler", page_icon="🎓", layout="centered")
 
-# Professional Institutional Slate Theme Styling
-st.markdown(
-    """
+# Styling
+st.markdown("""
     <style>
-    .stApp {
-        background-color: #0f172a;
-    }
-    h1, h2, h3, p, span, label, .stMarkdown {
-        color: #f8fafc !important;
-    }
-    .stTextInput input {
-        background-color: rgba(30, 41, 59, 0.7) !important;
-        color: #f8fafc !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-    div.stButton > button:first-child {
-        background-color: #1e3a8a !important;
-        color: white !important;
-        border-radius: 6px;
-        width: 100%;
-        border: none;
+    .stApp { background-color: #0f172a; }
+    h1, h2, h3, p, span, label { color: #f8fafc !important; }
+    div.stButton > button:first-child { 
+        background-color: #1e3a8a !important; 
+        color: white !important; 
+        border-radius: 6px; 
         padding: 10px;
     }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
-st.title("🎓 Dr. AIT BDA Lab Report Compiler")
-st.markdown("Enter student details below to update credentials seamlessly using **Times New Roman (Size 14)** matching your template formatting.")
+st.title("🎓 Dr. AIT Lab Report Compiler")
+st.markdown("Select your course, enter student credentials, and generate a professional, print-ready PDF.")
+
+# 1. Lab Selection
+lab_choice = st.selectbox("Select the Laboratory Course:", ["BDA (Big Data Analytics)", "ADBMS (Advanced DBMS)"])
+
+# 2. File Path Mapping
+template_path = "BDA FRONT PAGE1_merged.pdf"
+if lab_choice == "BDA (Big Data Analytics)":
+    manual_path = "BAD_Manual.pdf"
+    lab_full_title = "BIG DATA ANALYTICS LABREPORT(MCSL207)"
+else:
+    manual_path = "ADBMS_Manual.pdf"
+    lab_full_title = "ADVANCES IN DATABASE MANAGEMENT SYSTEM LABREPORT"
 
 st.markdown("---")
 
-front_template_path = "BDA FRONT PAGE1_merged.pdf"
-manual_pdf_path = "BAD_Manual_merged.pdf"
-
-# Verify repository readiness state inside the sidebar interface
-st.sidebar.header("📦 System Resource Status")
-resources_ready = True
-
-if os.path.exists(front_template_path):
-    st.sidebar.success("✅ Master Template PDF Loaded")
-else:
-    st.sidebar.error("❌ Missing: BDA FRONT PAGE1_merged.pdf")
-    resources_ready = False
-
-if os.path.exists(manual_pdf_path):
-    st.sidebar.success("✅ Master Lab Manual Loaded")
-else:
-    st.sidebar.error("❌ Missing: BAD_Manual_merged.pdf")
-    resources_ready = False
-
-# --- STUDENT INPUT MATRIX ---
-st.subheader("👤 Enter Student Credentials")
+# 3. Input Matrix
 col1, col2 = st.columns(2)
-student_name = col1.text_input("Full Student Name:", placeholder="e.g. CHETHAN PRASAD L")
-student_usn = col2.text_input("University Seat Number (USN):", placeholder="e.g. 1DA25SCS04")
+student_name = col1.text_input("Full Student Name:")
+student_usn = col2.text_input("University Seat Number (USN):")
 
-# Helper function to generate a transparent overlay containing text blocks matching Times layout
-def create_overlay_pdf(name, usn):
+def create_overlay(name, usn, title):
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=letter)
     
-    # ------------------ PAGE 1 OVERLAY (Cover Page) ------------------
-    # Completely mask the old student text line on the cover page
+    # --- PAGE 1: COVER ---
+    # Erase old info
     can.setFillColorRGB(1, 1, 1)
-    can.rect(80, 385, 450, 45, fill=True, stroke=False)
+    can.rect(80, 380, 450, 60, fill=True, stroke=False)
     
-    # Write the newly entered credentials in Times-Bold 14
-    can.setFillColorRGB(0.0, 0.0, 0.0) 
+    # Stamp new info (Times-Bold 14)
+    can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    display_text_p1 = f"{name.upper()}      {usn.upper()}"
-    can.drawCentredString(306, 404, display_text_p1)
+    can.drawCentredString(306, 420, title)
+    can.drawCentredString(306, 400, f"{name.upper()}      {usn.upper()}")
+    can.showPage()
     
-    can.showPage() # Target the certificate page next
-    
-    # ------------------ PAGE 2 OVERLAY (Certificate Page) ------------------
-    # Expanded white mask block to fully erase "SRIPADA RAO H       1DA25SCS18"
-    # Adjusted coordinates (lower down and taller) to cover all traces of the old text completely
+    # --- PAGE 2: CERTIFICATE ---
+    # Erase old info
     can.setFillColorRGB(1, 1, 1)
     can.rect(75, 400, 460, 40, fill=True, stroke=False)
     
-    # Stamp only the newly entered data beautifully aligned across the line
-    can.setFillColorRGB(0.0, 0.0, 0.0)
+    # Stamp new info
     can.setFont("Times-Bold", 14)
-    
-    # Places the new Name on the left, and the new USN perfectly on the right
     can.drawString(98, 412, name.upper())
     can.drawRightString(510, 412, usn.upper())
     
@@ -107,57 +75,43 @@ def create_overlay_pdf(name, usn):
     packet.seek(0)
     return packet
 
-# --- GENERATION PIPELINE ENGINE ---
-if resources_ready:
-    if student_name.strip() and student_usn.strip():
-        st.markdown("---")
-        
-        if st.button("⚡ Compile & Generate Full Printable Report"):
-            with st.spinner("Completely removing old credentials and applying new text fields..."):
+# 4. Compilation Engine
+if st.button("⚡ Compile & Generate PDF"):
+    if student_name and student_usn:
+        if os.path.exists(template_path) and os.path.exists(manual_path):
+            with st.spinner(f"Compiling {lab_choice} report..."):
                 try:
-                    # 1. Generate the customized Times text layers stream
-                    overlay_stream = create_overlay_pdf(student_name, student_usn)
+                    overlay_stream = create_overlay(student_name, student_usn, lab_full_title)
                     
-                    # 2. Load structural PDF resources
-                    template_reader = PdfReader(front_template_path)
-                    overlay_reader = PdfReader(overlay_stream)
-                    manual_reader = PdfReader(manual_pdf_path)
+                    writer = PdfWriter()
+                    template = PdfReader(template_path)
+                    overlay = PdfReader(overlay_stream)
+                    manual = PdfReader(manual_path)
                     
-                    pdf_writer = PdfWriter()
+                    # Merge pages
+                    for i in range(2):
+                        page = template.pages[i]
+                        page.merge_page(overlay.pages[i])
+                        writer.add_page(page)
                     
-                    # 3. Apply custom clean mask & text changes over Page 1 (Cover)
-                    page1 = template_reader.pages[0]
-                    page1.merge_page(overlay_reader.pages[0])
-                    pdf_writer.add_page(page1)
+                    # Append body
+                    for page in manual.pages:
+                        writer.add_page(page)
+                        
+                    final_io = io.BytesIO()
+                    writer.write(final_io)
+                    final_io.seek(0)
                     
-                    # 4. Apply custom clean mask & text changes over Page 2 (Certificate)
-                    page2 = template_reader.pages[1]
-                    page2.merge_page(overlay_reader.pages[1])
-                    pdf_writer.add_page(page2)
-                    
-                    # 5. Append all master experiments manual pages behind them
-                    for page in manual_reader.pages:
-                        pdf_writer.add_page(page)
-                    
-                    # 6. Save the final structurally combined binary stream
-                    final_pdf_io = io.BytesIO()
-                    pdf_writer.write(final_pdf_io)
-                    final_pdf_io.seek(0)
-                    
-                    st.success("✨ Report successfully compiled! Old credentials completely wiped and updated perfectly.")
-                    
-                    # Download trigger
+                    st.success("✨ Report successfully compiled!")
                     st.download_button(
-                        label="📥 Download Finished Lab Report (PDF)",
-                        data=final_pdf_io,
-                        file_name=f"{student_usn.upper()}_BDA_Complete_Report.pdf",
+                        label="📥 Download PDF", 
+                        data=final_io, 
+                        file_name=f"{student_usn.upper()}_{lab_choice[:4]}_Report.pdf", 
                         mime="application/pdf"
                     )
-                    
-                except Exception as engine_err:
-                    st.error("🚨 An issue occurred during report compilation processing loops.")
-                    st.exception(engine_err)
+                except Exception as e:
+                    st.error(f"Error during compilation: {e}")
+        else:
+            st.error(f"Missing required file: Ensure {manual_path} is in the repository.")
     else:
-        st.info("💡 Please type in the Student Name and USN above to activate the automated compiler.")
-else:
-    st.error("🚨 Configuration Error: Please ensure 'BDA FRONT PAGE1_merged.pdf' and 'BAD_Manual_merged.pdf' are present in your root GitHub folder path.")
+        st.warning("Please enter both Name and USN.")
