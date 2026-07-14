@@ -17,6 +17,7 @@ st.markdown("""
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
 
+# 1. Selection
 lab_choice = st.selectbox("Select the Laboratory Course:", ["BDA (Big Data Analytics)", "ADBMS (Advanced DBMS)"])
 manual_path = "BDA_Manual.pdf" if "BDA" in lab_choice else "ADBMS_Manual.pdf"
 
@@ -34,26 +35,27 @@ def create_overlay(name, usn):
     can.rect(100, 380, 420, 50, fill=True, stroke=False) 
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    can.drawString(100, 405, name.upper())
-    can.drawString(420, 405, usn.upper())
+    # Stamped lower (y=395)
+    can.drawString(110, 395, name.upper())
+    can.drawString(400, 395, usn.upper())
     can.showPage()
     
-    # --- PAGE 2: CERTIFICATE (FINAL FIX) ---
-    # Wider mask to ensure no ghost text remains
+    # --- PAGE 2: CERTIFICATE ---
     can.setFillColorRGB(1, 1, 1)
-    can.rect(80, 400, 480, 30, fill=True, stroke=False)
+    can.rect(80, 395, 480, 30, fill=True, stroke=False)
     
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    # Name on left (x=90), USN pushed far right (x=460)
-    can.drawString(90, 410, name.upper())
-    can.drawString(460, 410, usn.upper())
+    # Stamped lower (y=400)
+    can.drawString(90, 400, name.upper())
+    can.drawString(460, 400, usn.upper())
     
     can.showPage()
     can.save()
     packet.seek(0)
     return packet
 
+# 2. Compilation
 if st.button("⚡ Generate & Download PDF"):
     if student_name and student_usn and os.path.exists(manual_path):
         with st.spinner("Processing..."):
@@ -73,6 +75,11 @@ if st.button("⚡ Generate & Download PDF"):
             final_io.seek(0)
             
             st.success("✨ Report Compiled Successfully!")
-            st.download_button("📥 Download Final Report", final_io, f"{student_usn.upper()}_Report.pdf", "application/pdf")
+            st.download_button(
+                label="📥 Download Final Report",
+                data=final_io,
+                file_name=f"{student_usn.upper()}_Report.pdf",
+                mime="application/pdf"
+            )
     else:
-        st.error(f"Error: Missing {manual_path} or fields empty.")
+        st.error(f"Error: Missing {manual_path} or fields are empty.")
