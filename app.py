@@ -73,7 +73,6 @@ student_usn = col2.text_input("University Seat Number (USN):", placeholder="e.g.
 # Helper function to generate a transparent overlay containing text blocks matching Times layout
 def create_overlay_pdf(name, usn):
     packet = io.BytesIO()
-    # Create canvas stream matching standard page geometry
     can = canvas.Canvas(packet, pagesize=letter)
     
     # ------------------ PAGE 1 OVERLAY (Cover Page) ------------------
@@ -82,7 +81,7 @@ def create_overlay_pdf(name, usn):
     can.rect(100, 390, 420, 40, fill=True, stroke=False)
     
     # 2. Write the new text using Times-Bold at Font Size 14
-    can.setFillColorRGB(0.0, 0.0, 0.0) # True Black text color
+    can.setFillColorRGB(0.0, 0.0, 0.0) 
     can.setFont("Times-Bold", 14)
     display_text_p1 = f"{name.upper()}      {usn.upper()}"
     can.drawCentredString(306, 404, display_text_p1)
@@ -90,18 +89,16 @@ def create_overlay_pdf(name, usn):
     can.showPage() # Push canvas stream to process next page
     
     # ------------------ PAGE 2 OVERLAY (Certificate Page) ------------------
-    # 1. Hide the text line segment containing "carried out by-" and the old credentials
+    # 1. ONLY cover the specific bottom area where the old name and USN are placed.
+    # Leave the paragraph text "This is to certify..." completely untouched!
     can.setFillColorRGB(1, 1, 1)
-    can.rect(80, 480, 450, 25, fill=True, stroke=False)
+    can.rect(80, 440, 450, 30, fill=True, stroke=False)
     
-    # 2. Re-write the base line matching the document context using standard Times Size 14
+    # 2. Stamp the new student details dynamically in bold Times Size 14
     can.setFillColorRGB(0.0, 0.0, 0.0)
-    can.setFont("Times-Roman", 14)
-    can.drawString(98, 488, "carried out by-")
-    
-    # 3. Stamp the new student details dynamically in bold Times Size 14 right after it
     can.setFont("Times-Bold", 14)
-    can.drawString(185, 488, f"{name.upper()}      {usn.upper()}")
+    display_text_p2 = f"{name.upper()}                                       {usn.upper()}"
+    can.drawString(98, 450, display_text_p2)
     
     can.showPage()
     can.save()
@@ -145,7 +142,7 @@ if resources_ready:
                     pdf_writer.write(final_pdf_io)
                     final_pdf_io.seek(0)
                     
-                    st.success("✨ Report successfully compiled! Fonts are perfectly aligned at size 14 Times New Roman.")
+                    st.success("✨ Report successfully compiled! All paragraph layout structures are perfectly preserved.")
                     
                     # Download trigger
                     st.download_button(
