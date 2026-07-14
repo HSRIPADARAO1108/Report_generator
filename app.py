@@ -7,9 +7,17 @@ from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="Dr. AIT Report Generator", page_icon="🎓", layout="centered")
 
+st.markdown("""
+    <style>
+    .stApp { background-color: #0f172a; }
+    h1, h2, h3, p, span, label { color: #f8fafc !important; }
+    div.stButton > button:first-child { background-color: #1e3a8a !important; color: white !important; }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🎓 Dr. AIT Lab Report Compiler")
 
-# 1. Select Lab
+# 1. Lab Selection
 lab_choice = st.selectbox("Select the Laboratory Course:", ["BDA (Big Data Analytics)", "ADBMS (Advanced DBMS)"])
 manual_path = "BDA_Manual.pdf" if "BDA" in lab_choice else "ADBMS_Manual.pdf"
 
@@ -23,32 +31,37 @@ def create_overlay(name, usn):
     can = canvas.Canvas(packet, pagesize=letter)
     
     # --- PAGE 1: COVER ---
-    # Mask area: (x, y, width, height) - Covers where "SRIPADA RAO H" is
+    # Mask area: (x, y, width, height) - Covers SRIPADA RAO H and USN
     can.setFillColorRGB(1, 1, 1)
-    can.rect(150, 380, 400, 50, fill=True, stroke=False) 
+    can.rect(100, 380, 420, 50, fill=True, stroke=False) 
     
     # Stamp new info
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    can.drawCentredString(306, 400, f"{name.upper()}      {usn.upper()}")
+    can.drawCentredString(306, 405, name.upper())
+    can.drawCentredString(306, 385, usn.upper())
     can.showPage()
     
     # --- PAGE 2: CERTIFICATE ---
-    # Mask area: Covers the name/USN in the certificate text
+    # Mask area: Covers name and USN line
     can.setFillColorRGB(1, 1, 1)
-    can.rect(80, 400, 450, 40, fill=True, stroke=False)
+    can.rect(80, 400, 450, 30, fill=True, stroke=False)
     
     # Stamp new info
     can.setFont("Times-Bold", 14)
-    can.drawString(98, 415, name.upper())
-    can.drawRightString(510, 415, usn.upper())
+    can.drawString(98, 408, name.upper())
+    can.drawRightString(510, 408, usn.upper())
     
     can.showPage()
     can.save()
     packet.seek(0)
     return packet
 
-if st.button("⚡ Generate Final PDF"):
+# 2. Compilation Engine
+if 'compiled_pdf' not in st.session_state:
+    st.session_state.compiled_pdf = None
+
+if st.button("⚡ Compile Report"):
     if student_name and student_usn and os.path.exists(manual_path):
         with st.spinner("Processing..."):
             overlay_stream = create_overlay(student_name, student_usn)
@@ -65,9 +78,14 @@ if st.button("⚡ Generate Final PDF"):
             
             final_io = io.BytesIO()
             writer.write(final_io)
-            final_io.seek(0)
-            
-            st.success("✨ Report Ready!")
-            st.download_button("📥 Download Report", final_io, f"{student_usn.upper()}_Report.pdf", "application/pdf")
+            st.session_state.compiled_pdf = final_io.getvalue()
+            st.success("✨ Report Compiled! Scroll down to preview.")
     else:
-        st.error(f"Error: Ensure {manual_path} exists and fields are filled.")
+        st.error(f"Error: Missing {manual_path} or fields empty.")
+
+# 3. Preview & Download
+if st.session_state.compiled_pdf:
+    st.markdown("---")
+    st.subheader("👁️ Preview Report")
+    st.pdf(st.session_state.compiled_pdf)
+    st.download_button("📥 Download Final Report", st.session_state.compiled_pdf, f"{student_usn.upper()}_Report.pdf", "application/pdf")
