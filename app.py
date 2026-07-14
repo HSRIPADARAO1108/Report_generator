@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import io
-from pypdf import PdfReader, PdfWriter, PageObject
+from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
@@ -41,7 +41,7 @@ st.markdown(
 )
 
 st.title("🎓 Dr. AIT BDA Lab Report Compiler")
-st.markdown("Enter student details below to update credentials on your original template layout and generate a compiled, print-ready document.")
+st.markdown("Enter student details below to update credentials seamlessly using **Times New Roman (Size 14)** matching your template formatting.")
 
 st.markdown("---")
 
@@ -70,35 +70,40 @@ col1, col2 = st.columns(2)
 student_name = col1.text_input("Full Student Name:", placeholder="e.g. CHETHAN PRASAD L")
 student_usn = col2.text_input("University Seat Number (USN):", placeholder="e.g. 1DA25SCS04")
 
-# Helper function to generate a transparent overlay containing the text changes
+# Helper function to generate a transparent overlay containing text blocks matching Times layout
 def create_overlay_pdf(name, usn):
     packet = io.BytesIO()
-    # Create a canvas with letter size matching your template properties
+    # Create canvas stream matching standard page geometry
     can = canvas.Canvas(packet, pagesize=letter)
     
-    # ------------------ PAGE 1 OVERLAY ------------------
-    # White background block to cover old hardcoded "SRIPADA RAO H    1DA25SCS18"
+    # ------------------ PAGE 1 OVERLAY (Cover Page) ------------------
+    # 1. Hide the old student row cleanly with a white mask block
     can.setFillColorRGB(1, 1, 1)
-    can.rect(100, 395, 420, 35, fill=True, stroke=False)
+    can.rect(100, 390, 420, 40, fill=True, stroke=False)
     
-    # Write the new text exactly where it belongs
-    can.setFillColorRGB(0.12, 0.23, 0.54) # Match institutional blue tone
-    can.setFont("Helvetica-Bold", 16)
+    # 2. Write the new text using Times-Bold at Font Size 14
+    can.setFillColorRGB(0.0, 0.0, 0.0) # True Black text color
+    can.setFont("Times-Bold", 14)
     display_text_p1 = f"{name.upper()}      {usn.upper()}"
-    can.drawCentredString(306, 405, display_text_p1)
-    can.showPage() # Target next page context
+    can.drawCentredString(306, 404, display_text_p1)
     
-    # ------------------ PAGE 2 OVERLAY ------------------
-    # White background block to cover old hardcoded "H SRIPADA RAO    1DA25SCS18" on certificate
+    can.showPage() # Push canvas stream to process next page
+    
+    # ------------------ PAGE 2 OVERLAY (Certificate Page) ------------------
+    # 1. Hide the text line segment containing "carried out by-" and the old credentials
     can.setFillColorRGB(1, 1, 1)
     can.rect(80, 480, 450, 25, fill=True, stroke=False)
     
-    can.setFillColorRGB(0.06, 0.09, 0.17) # Match body dark slate text
-    can.setFont("Helvetica-Bold", 12)
-    display_text_p2 = f"{name.upper()} bearing University Seat Number {usn.upper()}."
-    can.drawString(98, 488, display_text_p2)
-    can.showPage()
+    # 2. Re-write the base line matching the document context using standard Times Size 14
+    can.setFillColorRGB(0.0, 0.0, 0.0)
+    can.setFont("Times-Roman", 14)
+    can.drawString(98, 488, "carried out by-")
     
+    # 3. Stamp the new student details dynamically in bold Times Size 14 right after it
+    can.setFont("Times-Bold", 14)
+    can.drawString(185, 488, f"{name.upper()}      {usn.upper()}")
+    
+    can.showPage()
     can.save()
     packet.seek(0)
     return packet
@@ -109,40 +114,40 @@ if resources_ready:
         st.markdown("---")
         
         if st.button("⚡ Compile & Generate Full Printable Report"):
-            with st.spinner("Overlaying credentials onto original template structures smoothly..."):
+            with st.spinner("Overlaying updated text (Times Size 14) onto original template structure..."):
                 try:
-                    # 1. Generate the custom overlay stream
+                    # 1. Generate the customized Times text layers stream
                     overlay_stream = create_overlay_pdf(student_name, student_usn)
                     
-                    # 2. Read template and overlay files
+                    # 2. Load structural PDF resources
                     template_reader = PdfReader(front_template_path)
                     overlay_reader = PdfReader(overlay_stream)
                     manual_reader = PdfReader(manual_pdf_path)
                     
                     pdf_writer = PdfWriter()
                     
-                    # 3. Process Page 1: Apply text change onto original layout
+                    # 3. Apply custom clean mask & text changes over Page 1 (Cover)
                     page1 = template_reader.pages[0]
                     page1.merge_page(overlay_reader.pages[0])
                     pdf_writer.add_page(page1)
                     
-                    # 4. Process Page 2: Apply certificate name change onto original layout
+                    # 4. Apply custom clean mask & text changes over Page 2 (Certificate)
                     page2 = template_reader.pages[1]
                     page2.merge_page(overlay_reader.pages[1])
                     pdf_writer.add_page(page2)
                     
-                    # 5. Append all experiment lab manual pages seamlessly
+                    # 5. Append all master experiments manual pages behind them
                     for page in manual_reader.pages:
                         pdf_writer.add_page(page)
                     
-                    # 6. Output compiled file stream
+                    # 6. Save the final structurally combined binary stream
                     final_pdf_io = io.BytesIO()
                     pdf_writer.write(final_pdf_io)
                     final_pdf_io.seek(0)
                     
-                    st.success("✨ Success! Credentials updated perfectly on your original template layout.")
+                    st.success("✨ Report successfully compiled! Fonts are perfectly aligned at size 14 Times New Roman.")
                     
-                    # Download button utility
+                    # Download trigger
                     st.download_button(
                         label="📥 Download Finished Lab Report (PDF)",
                         data=final_pdf_io,
@@ -156,4 +161,4 @@ if resources_ready:
     else:
         st.info("💡 Please type in the Student Name and USN above to activate the automated compiler.")
 else:
-    st.error("🚨 Configuration Error: Please check system resource files on GitHub.")
+    st.error("🚨 Configuration Error: Please ensure 'BDA FRONT PAGE1_merged.pdf' and 'BAD_Manual_merged.pdf' are present in your root GitHub folder path.")
