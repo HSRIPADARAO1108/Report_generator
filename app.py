@@ -7,7 +7,6 @@ from reportlab.pdfgen import canvas
 
 st.set_page_config(page_title="Dr. AIT Lab Report Compiler", page_icon="🎓", layout="centered")
 
-# Styling
 st.markdown("""
     <style>
     .stApp { background-color: #0f172a; }
@@ -18,7 +17,6 @@ st.markdown("""
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
 
-# 1. Selection
 lab_choice = st.selectbox("Select the Laboratory Course:", ["BDA (Big Data Analytics)", "ADBMS (Advanced DBMS)"])
 manual_path = "BDA_Manual.pdf" if "BDA" in lab_choice else "ADBMS_Manual.pdf"
 
@@ -32,32 +30,30 @@ def create_overlay(name, usn):
     can = canvas.Canvas(packet, pagesize=letter)
     
     # --- PAGE 1: COVER ---
-    # Erase area and stamp
     can.setFillColorRGB(1, 1, 1)
     can.rect(100, 380, 420, 50, fill=True, stroke=False) 
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    # Side-by-Side: Name (left) and USN (right)
-    can.drawString(110, 405, name.upper())
-    can.drawString(400, 405, usn.upper())
+    can.drawString(100, 405, name.upper())
+    can.drawString(420, 405, usn.upper())
     can.showPage()
     
-    # --- PAGE 2: CERTIFICATE ---
-    # Erase area and stamp
+    # --- PAGE 2: CERTIFICATE (FINAL FIX) ---
+    # Wider mask to ensure no ghost text remains
     can.setFillColorRGB(1, 1, 1)
-    can.rect(90, 400, 450, 30, fill=True, stroke=False)
+    can.rect(80, 400, 480, 30, fill=True, stroke=False)
+    
     can.setFillColorRGB(0, 0, 0)
     can.setFont("Times-Bold", 14)
-    # Side-by-Side: Name (left) and USN (far right anchor)
-    can.drawString(98, 410, name.upper())
-    can.drawRightString(510, 410, usn.upper())
+    # Name on left (x=90), USN pushed far right (x=460)
+    can.drawString(90, 410, name.upper())
+    can.drawString(460, 410, usn.upper())
     
     can.showPage()
     can.save()
     packet.seek(0)
     return packet
 
-# 2. Compilation
 if st.button("⚡ Generate & Download PDF"):
     if student_name and student_usn and os.path.exists(manual_path):
         with st.spinner("Processing..."):
@@ -66,7 +62,6 @@ if st.button("⚡ Generate & Download PDF"):
             writer = PdfWriter()
             overlay = PdfReader(overlay_stream)
             
-            # Merge logic
             for i in range(len(reader.pages)):
                 page = reader.pages[i]
                 if i < 2:
@@ -78,11 +73,6 @@ if st.button("⚡ Generate & Download PDF"):
             final_io.seek(0)
             
             st.success("✨ Report Compiled Successfully!")
-            st.download_button(
-                label="📥 Download Final Report",
-                data=final_io,
-                file_name=f"{student_usn.upper()}_Report.pdf",
-                mime="application/pdf"
-            )
+            st.download_button("📥 Download Final Report", final_io, f"{student_usn.upper()}_Report.pdf", "application/pdf")
     else:
-        st.error(f"Error: Missing {manual_path} or fields are empty.")
+        st.error(f"Error: Missing {manual_path} or fields empty.")
