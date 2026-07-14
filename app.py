@@ -1,10 +1,11 @@
 import streamlit as st
 import os
 import io
+import subprocess
 from docx import Document
 from pypdf import PdfReader, PdfWriter
 
-# Page structural properties layout configuration
+# Page UI properties layout configuration
 st.set_page_config(
     page_title="Dr. AIT BDA Report Generator", 
     page_icon="🎓", 
@@ -40,11 +41,10 @@ st.markdown(
 )
 
 st.title("🎓 Dr. AIT BDA Lab Report Compiler")
-st.markdown("Enter your student details below to generate a fully compiled, personalized, print-ready laboratory manual.")
+st.markdown("Enter your student details below to instantly generate a fully compiled, personalized, print-ready laboratory manual featuring your official front coversheets.")
 
 st.markdown("---")
 
-# Target asset template tracking
 front_template_path = "BDA FRONT PAGE1_merged.docx"
 manual_pdf_path = "BAD_Manual_merged.pdf"
 
@@ -53,7 +53,7 @@ st.sidebar.header("📦 System Resource Status")
 resources_ready = True
 
 if os.path.exists(front_template_path):
-    st.sidebar.success("✅ Front Page Template Loaded")
+    st.sidebar.success("✅ Front Page Word Template Loaded")
 else:
     st.sidebar.error("❌ Missing: BDA FRONT PAGE1_merged.docx")
     resources_ready = False
@@ -70,16 +70,16 @@ col1, col2 = st.columns(2)
 student_name = col1.text_input("Full Student Name:", placeholder="e.g. CHETHAN PRASAD L")
 student_usn = col2.text_input("University Seat Number (USN):", placeholder="e.g. 1DA25SCS04")
 
-# Core function to scan formatting blocks and replace metadata placeholders cleanly
+# Core function to scan paragraph formatting blocks and replace placeholders
 def process_word_template(path, replacement_name, replacement_usn):
     doc = Document(path)
     
-    # Placeholders inside original file strings mapping
+    # Original hardcoded placeholders located in your files
     search_usn = "1DA25SCS18"
     search_name_1 = "SRIPADA RAO H"
     search_name_2 = "H SRIPADA RAO"
     
-    # Loop over standard paragraph structures
+    # Loop over standard paragraph runs
     for para in doc.paragraphs:
         if search_usn in para.text:
             for run in para.runs:
@@ -92,7 +92,7 @@ def process_word_template(path, replacement_name, replacement_usn):
                 if search_name_2 in run.text:
                     run.text = run.text.replace(search_name_2, replacement_name.upper())
 
-    # Loop over hidden cells inside tables (signature validation fields)
+    # Loop over hidden cells inside tables (signature validation matrices)
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
@@ -108,11 +108,7 @@ def process_word_template(path, replacement_name, replacement_usn):
                             if search_name_2 in run.text:
                                 run.text = run.text.replace(search_name_2, replacement_name.upper())
                                 
-    # Capture modified text memory array streams safely
-    doc_io = io.BytesIO()
-    doc.save(doc_io)
-    doc_io.seek(0)
-    return doc_io
+    return doc
 
 # --- GENERATION PIPELINE ENGINE ---
 if resources_ready:
@@ -120,42 +116,62 @@ if resources_ready:
         st.markdown("---")
         
         if st.button("⚡ Compile & Generate Full Printable Report"):
-            with st.spinner("Modifying coversheets and binding master manual document streams..."):
+            with st.spinner("Processing templates, generating customized cover sheets, and stitching manual pages..."):
+                
+                # Define temporary working files
+                temp_docx = "temp_modified_front.docx"
+                temp_pdf = "temp_modified_front.pdf"
+                final_output = f"{student_usn.upper()}_BDA_Complete_Report.pdf"
+                
                 try:
-                    # 1. Update the student metadata in the Word template memory matrix
-                    updated_docx_stream = process_word_template(front_template_path, student_name, student_usn)
+                    # 1. Update text metadata directly within the .docx file layers
+                    modified_doc = process_word_template(front_template_path, student_name, student_usn)
+                    modified_doc.save(temp_docx)
                     
-                    # 2. Open structural file layout channels using pypdf writer structures
+                    # 2. Cross-platform headless CLI invocation to convert docx to pdf flawlessly
+                    try:
+                        # For Linux/Streamlit environments hosting LibreOffice modules
+                        subprocess.run([
+                            'libreoffice', '--headless', '--convert-to', 'pdf', temp_docx
+                        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    except Exception:
+                        # Fallback for alternative environments utilizing standard conversion scripts
+                        from docx2pdf import convert
+                        convert(temp_docx, temp_pdf)
+                    
+                    # 3. Stitch the generated front sheets with the core manual using pypdf
                     pdf_writer = PdfWriter()
                     
-                    # Load the generated, updated cover pages
-                    # Note: Since standard server code processes the document structures natively, 
-                    # we append the experiments manual payload smoothly.
+                    front_reader = PdfReader(temp_pdf)
+                    for page in front_reader.pages:
+                        pdf_writer.add_page(page)
+                        
                     main_manual_reader = PdfReader(manual_pdf_path)
-                    
-                    # Build complete consolidated report framework file mapping parameters
                     for page in main_manual_reader.pages:
                         pdf_writer.add_page(page)
                     
-                    # 3. Export data configurations out as binary assets
-                    final_pdf_io = io.BytesIO()
-                    pdf_writer.write(final_pdf_io)
-                    final_pdf_io.seek(0)
+                    # Save out the complete consolidated file
+                    with open(final_output, "wb") as out_f:
+                        pdf_writer.write(out_f)
                     
-                    st.success("✨ Laboratory report compiled successfully!")
+                    st.success("✨ Complete laboratory report compiled successfully with original coversheets!")
                     
-                    # 4. Instant system download utility trigger
-                    st.download_button(
-                        label="📥 Download Finished Lab Report (PDF)",
-                        data=final_pdf_io,
-                        file_name=f"{student_usn.upper()}_BDA_Lab_Report.pdf",
-                        mime="application/pdf"
-                    )
-                    
+                    # 4. Provide the instant file download utility button
+                    with open(final_output, "rb") as final_bytes:
+                        st.download_button(
+                            label="📥 Download Finished Lab Report (PDF)",
+                            data=final_bytes.read(),
+                            file_name=final_output,
+                            mime="application/pdf"
+                        )
+                        
+                    # Clean up workspace cache elements silently
+                    for file in [temp_docx, temp_pdf, final_output]:
+                        if os.path.exists(file):
+                            os.remove(file)
+                            
                 except Exception as engine_err:
                     st.error("🚨 An issue occurred during report compilation processing loops.")
                     st.exception(engine_err)
     else:
         st.info("💡 Please type in the Student Name and USN above to activate the automated compiler.")
-else:
-    st.error("🚨 Configuration Error: Please ensure both 'BDA FRONT PAGE1_merged.docx' and 'BAD_Manual_merged.pdf' are uploaded into your root repository path folder on GitHub.")
