@@ -1,16 +1,20 @@
 import streamlit as st
 import os
 import io
-from pypdf import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter, PageObject
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
-# Page UI properties layout configuration
+# Page setup layout
 st.set_page_config(
     page_title="Dr. AIT BDA Report Generator", 
     page_icon="🎓", 
     layout="centered"
 )
 
-# Professional Institutional Slate Theme Styling
+# Professional Slate Theme
 st.markdown(
     """
     <style>
@@ -39,27 +43,20 @@ st.markdown(
 )
 
 st.title("🎓 Dr. AIT BDA Lab Report Compiler")
-st.markdown("Enter your student details below to instantly generate a fully compiled, personalized, print-ready laboratory manual featuring your official front coversheets.")
+st.markdown("Enter student credentials below to generate a fully updated, compiled, print-ready laboratory manual.")
 
 st.markdown("---")
 
-front_pdf_path = "BDA_FRONT_TEMP.pdf"
 manual_pdf_path = "BAD_Manual_merged.pdf"
 
-# Verify repository readiness state inside the sidebar interface
+# Check system state
 st.sidebar.header("📦 System Resource Status")
 resources_ready = True
 
-if os.path.exists(front_pdf_path):
-    st.sidebar.success("✅ Front Page PDF Loaded")
-else:
-    st.sidebar.error("❌ Missing: BDA_FRONT_TEMP.pdf")
-    resources_ready = False
-
 if os.path.exists(manual_pdf_path):
-    st.sidebar.success("✅ Master Lab Manual Loaded")
+    st.sidebar.success("Base Lab Manual Loaded")
 else:
-    st.sidebar.error("❌ Missing: BAD_Manual_merged.pdf")
+    st.sidebar.error("Missing: BAD_Manual_merged.pdf")
     resources_ready = False
 
 # --- STUDENT INPUT MATRIX ---
@@ -68,30 +65,85 @@ col1, col2 = st.columns(2)
 student_name = col1.text_input("Full Student Name:", placeholder="e.g. CHETHAN PRASAD L")
 student_usn = col2.text_input("University Seat Number (USN):", placeholder="e.g. 1DA25SCS04")
 
-# Core function to swap text directly inside the PDF content streams
-def modify_pdf_text(input_pdf_path, old_name_1, old_name_2, old_usn, new_name, new_usn):
-    reader = PdfReader(input_pdf_path)
-    writer = PdfWriter()
+# Core function to generate the complete document from scratch dynamically to avoid Linux conversion bugs
+def generate_complete_report(name, usn, base_manual_path):
+    pdf_buffer = io.BytesIO()
+    # Margins matching official report parameters
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=letter,
+                            rightMargin=54, leftMargin=54, topMargin=40, bottomMargin=40)
+    story = []
+    styles = getSampleStyleSheet()
     
-    for page in reader.pages:
-        # Check text contents using page streams natively
-        content = page.get_contents()
-        if content:
-            # Safely extract binary data to replace string encodings
-            data = page.get_contents().get_data()
-            
-            # Perform text structural switches inside the PDF code block
-            if old_usn.encode('utf-8') in data:
-                data = data.replace(old_usn.encode('utf-8'), new_usn.upper().encode('utf-8'))
-            if old_name_1.encode('utf-8') in data:
-                data = data.replace(old_name_1.encode('utf-8'), new_name.upper().encode('utf-8'))
-            if old_name_2.encode('utf-8') in data:
-                data = data.replace(old_name_2.encode('utf-8'), new_name.upper().encode('utf-8'))
-                
-            page.get_contents().set_data(data)
-        writer.add_page(page)
+    # Custom Typographical Styles matching Dr. AIT document parameters
+    inst_style = ParagraphStyle('Inst', parent=styles['Heading1'], fontSize=18, leading=22, alignment=TA_CENTER, textColor='#1e3a8a', spaceAfter=4)
+    sub_inst_style = ParagraphStyle('SubInst', parent=styles['Normal'], fontSize=10, leading=14, alignment=TA_CENTER, textColor='#475569', spaceAfter=4)
+    dept_style = ParagraphStyle('Dept', parent=styles['Heading2'], fontSize=14, leading=18, alignment=TA_CENTER, textColor='#0f172a', spaceAfter=20)
+    report_title = ParagraphStyle('RepTitle', parent=styles['Heading1'], fontSize=22, leading=26, alignment=TA_CENTER, textColor='#1e3a8a', spaceAfter=10)
+    meta_label = ParagraphStyle('MetaLabel', parent=styles['Normal'], fontSize=12, leading=16, alignment=TA_CENTER, textColor='#334155', spaceAfter=15)
+    cert_body = ParagraphStyle('CertBody', parent=styles['Normal'], fontSize=12, leading=22, alignment=TA_JUSTIFY, textColor='#1e293b', spaceAfter=30)
+    
+    # ==================== PAGE 1: COVER PAGE ====================
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<b>Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</b>", inst_style))
+    story.append(Paragraph("(An Autonomous Institute, Affiliated to Visvesvaraya Technological University, Belagavi, Accredited by NAAC, with \"A\" Grade)", sub_inst_style))
+    story.append(Paragraph("Near Jnana Bharathi Campus, Bangalore – 560056", sub_inst_style))
+    story.append(Spacer(1, 15))
+    story.append(Paragraph("<b>DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING</b>", dept_style))
+    story.append(Paragraph("Master of Technology<br/>in<br/>Computer Science and Engineering", meta_label))
+    story.append(Spacer(1, 30))
+    story.append(Paragraph("<b>“ BIG DATA ANALYTICS LAB REPORT ”</b>", report_title))
+    story.append(Spacer(1, 40))
+    story.append(Paragraph("<i>Submitted by</i>", meta_label))
+    story.append(Paragraph(f"<b>{name.upper()} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {usn.upper()}</b>", inst_style))
+    story.append(Spacer(1, 40))
+    story.append(Paragraph("<i>Under the Guidance of</i>", meta_label))
+    story.append(Paragraph("<b>Dr. Prabha R</b><br/>Professor & HOD, Dept. of ISE, Dr. AIT", sub_inst_style))
+    story.append(Spacer(1, 40))
+    story.append(Paragraph("<b>Visvesvaraya Technological University</b><br/>Jnana Sangama, Belagavi, Karnataka 590018", sub_inst_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<b>For the academic year 2026 - 2027</b>", meta_label))
+    
+    story.append(PageBreak())
+    
+    # ==================== PAGE 2: CERTIFICATE ====================
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<b>Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</b>", inst_style))
+    story.append(Paragraph("(An Autonomous Institute, affiliated to VTU, Belagavi, Accredited by NAAC with ‘A’ Grade)", sub_inst_style))
+    story.append(Paragraph("Near Jnana Bharathi Campus, Bengaluru – 560056", sub_inst_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<u><b>CERTIFICATE</b></u>", report_title))
+    story.append(Spacer(1, 15))
+    story.append(Paragraph("<b>“BDA Laboratory”</b>", dept_style))
+    
+    cert_text = f"This is to certify that the submitted document in the partial fulfillment of the requirement of the M.Tech 2nd semester BDA laboratory curriculum during the year 2025-26 is a result of Bonafide work carried out by <b>{name.upper()}</b> bearing University Seat Number <b>{usn.upper()}</b>."
+    story.append(Paragraph(cert_text, cert_body))
+    
+    story.append(Spacer(1, 80))
+    story.append(Paragraph("<b>Signature of the Incharge &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Head of Department, ISE</b>", sub_inst_style))
+    story.append(Paragraph("Dr. Prabha R &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Dr. Prabha R", sub_inst_style))
+    story.append(Spacer(1, 60))
+    story.append(Paragraph("<b>Internal Examiner &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; External Examiner</b>", sub_inst_style))
+    
+    doc.build(story)
+    pdf_buffer.seek(0)
+    
+    # Now merge with the master manual PDF
+    pdf_writer = PdfWriter()
+    front_reader = PdfReader(pdf_buffer)
+    manual_reader = PdfReader(base_manual_path)
+    
+    # Append newly customized front page and certificate
+    for page in front_reader.pages:
+        pdf_writer.add_page(page)
         
-    return writer
+    # Append the entire lab report manual text pages
+    for page in manual_reader.pages:
+        pdf_writer.add_page(page)
+        
+    final_output_io = io.BytesIO()
+    pdf_writer.write(final_output_io)
+    final_output_io.seek(0)
+    return final_output_io
 
 # --- GENERATION PIPELINE ENGINE ---
 if resources_ready:
@@ -99,42 +151,27 @@ if resources_ready:
         st.markdown("---")
         
         if st.button("⚡ Compile & Generate Full Printable Report"):
-            with st.spinner("Modifying coversheets and binding master manual document streams..."):
+            with st.spinner("Compiling custom institutional coversheets and merging manual files..."):
                 try:
-                    # Placeholders inside original files mapping
-                    target_usn = "1DA25SCS18"
-                    target_name_1 = "SRIPADA RAO H"
-                    target_name_2 = "H SRIPADA RAO"
-                    
-                    # 1. Update text metadata directly within the front PDF stream
-                    pdf_writer = modify_pdf_text(
-                        front_pdf_path, target_name_1, target_name_2, target_usn, student_name, student_usn
+                    # Run the dynamic compilation pipeline
+                    compiled_report = generate_complete_report(
+                        student_name, student_usn, manual_pdf_path
                     )
                     
-                    # 2. Append the main experimental lab manual payload
-                    main_manual_reader = PdfReader(manual_pdf_path)
-                    for page in main_manual_reader.pages:
-                        pdf_writer.add_page(page)
+                    st.success("✨ Report compiled successfully! The entered Name and USN have been visually rendered onto the front pages.")
                     
-                    # 3. Export data configurations out as a binary asset
-                    final_pdf_io = io.BytesIO()
-                    pdf_writer.write(final_pdf_io)
-                    final_pdf_io.seek(0)
-                    
-                    st.success("✨ Laboratory report compiled successfully with original coversheets!")
-                    
-                    # 4. Instant system download utility trigger
+                    # File download utility trigger
                     st.download_button(
                         label="📥 Download Finished Lab Report (PDF)",
-                        data=final_pdf_io,
+                        data=compiled_report,
                         file_name=f"{student_usn.upper()}_BDA_Complete_Report.pdf",
                         mime="application/pdf"
                     )
                     
                 except Exception as engine_err:
-                    st.error("🚨 An issue occurred during report compilation processing loops.")
+                    st.error("🚨 An issue occurred during report compilation loops.")
                     st.exception(engine_err)
     else:
         st.info("💡 Please type in the Student Name and USN above to activate the automated compiler.")
 else:
-    st.error("🚨 Configuration Error: Ensure both 'BDA_FRONT_TEMP.pdf' and 'BAD_Manual_merged.pdf' are pushed to your GitHub repository.")
+    st.error("🚨 Configuration Error: Please ensure 'BAD_Manual_merged.pdf' is present in your GitHub repository.")
