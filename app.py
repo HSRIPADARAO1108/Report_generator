@@ -5,7 +5,8 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-st.set_config(page_title="Dr. AIT Lab Report Compiler", layout="centered")
+# FIXED: Changed st.set_config to st.set_page_config
+st.set_page_config(page_title="Dr. AIT Lab Report Compiler", layout="centered")
 
 # UPDATED CSS: High-contrast Clean Theme
 st.markdown("""
