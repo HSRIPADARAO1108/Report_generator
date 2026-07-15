@@ -5,42 +5,40 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-st.set_page_config(page_title="Dr. AIT Report Generator", layout="centered")
+st.set_page_config(page_title="Dr. AIT Lab Report Compiler", layout="centered")
 
-# UPDATED CSS: High-contrast, clean, and cool UI
+# UPDATED CSS: High-Contrast and Readable
 st.markdown("""
     <style>
-    /* Clean white background */
-    .stApp { background-color: #f8fafc !important; }
+    /* Light grey background for the whole page */
+    .stApp { background-color: #f0f2f6 !important; }
     
-    /* Elegant typography */
+    /* Dark text for better readability */
     h1, h2, h3, p, span, label { color: #1e293b !important; font-family: sans-serif; }
     
-    /* Professional buttons: Clean dark slate with white text */
+    /* Buttons: White background with bold dark text */
     div.stButton > button { 
         width: 100% !important; 
-        height: 55px !important; 
-        font-weight: 600 !important; 
-        background-color: #334155 !important; 
-        color: #f8fafc !important;
+        height: 60px !important; 
+        font-weight: 700 !important; 
+        background-color: #ffffff !important; 
+        color: #0f172a !important;
+        border: 2px solid #cbd5e1 !important;
         border-radius: 12px !important;
-        border: none !important;
         margin: 8px 0 !important;
-        transition: all 0.3s ease;
     }
     
-    /* Button hover effect */
-    div.stButton > button:hover { background-color: #0f172a !important; }
+    /* Hover effect for better interactivity */
+    div.stButton > button:hover { 
+        background-color: #e2e8f0 !important;
+        border-color: #64748b !important;
+    }
     
-    /* Input field styling */
+    /* Input fields */
     .stTextInput > div > div > input {
         border: 2px solid #cbd5e1 !important;
         border-radius: 8px !important;
-        padding: 10px !important;
     }
-    
-    /* Success/Info box coloring */
-    .stAlert { border-radius: 10px !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -85,7 +83,7 @@ if st.session_state.manual:
 
     if st.button("⚡ Generate & Download PDF"):
         if student_name and student_usn and os.path.exists(st.session_state.manual):
-            with st.spinner("Compiling your report..."):
+            with st.spinner("Compiling..."):
                 overlay_stream = create_overlay(student_name, student_usn)
                 reader = PdfReader(st.session_state.manual)
                 writer = PdfWriter()
@@ -101,8 +99,8 @@ if st.session_state.manual:
                 writer.write(final_io)
                 final_io.seek(0)
                 
-                st.success("✨ Ready to download!")
+                st.success("✨ Report ready!")
                 st.download_button("📥 Download Final Report", final_io, 
                                    f"{student_usn.upper()}_Report.pdf", "application/pdf")
         else:
-            st.error("Please fill in your Name and USN.")
+            st.error("Please ensure you entered your Name, USN, and selected a subject.")
