@@ -5,85 +5,67 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-st.set_page_config(page_title="Dr. AIT Lab Report Compiler", layout="centered")
+st.set_page_config(page_title="Dr. AIT Lab Report Compiler", page_icon="🎓", layout="centered")
 
-# UPDATED CSS: High-Contrast and Readable
 st.markdown("""
     <style>
-    /* Light grey background for the whole page */
-    .stApp { background-color: #f0f2f6 !important; }
-    
-    /* Dark text for better readability */
-    h1, h2, h3, p, span, label { color: #1e293b !important; font-family: sans-serif; }
-    
-    /* Buttons: White background with bold dark text */
-    div.stButton > button { 
-        width: 100% !important; 
-        height: 60px !important; 
-        font-weight: 700 !important; 
-        background-color: #ffffff !important; 
-        color: #0f172a !important;
-        border: 2px solid #cbd5e1 !important;
-        border-radius: 12px !important;
-        margin: 8px 0 !important;
-    }
-    
-    /* Hover effect for better interactivity */
-    div.stButton > button:hover { 
-        background-color: #e2e8f0 !important;
-        border-color: #64748b !important;
-    }
-    
-    /* Input fields */
-    .stTextInput > div > div > input {
-        border: 2px solid #cbd5e1 !important;
-        border-radius: 8px !important;
-    }
+    .stApp { background-color: #0f172a; }
+    h1, h2, h3, p, span, label { color: #f8fafc !important; }
+    div.stButton > button { width: 100%; height: 50px; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🎓 Dr. AIT Lab Report Compiler")
-st.subheader("Select your Laboratory Subject:")
 
-# Subject Selection
-if st.button("BDA (Big Data Analytics)"):
+# 1. Subject Selection via Buttons
+st.subheader("Select your Laboratory Subject:")
+col_a, col_b = st.columns(2)
+if col_a.button("BDA (Big Data Analytics)"):
     st.session_state.manual = "BDA_Manual.pdf"
-if st.button("ADBMS (Advanced DBMS)"):
+if col_b.button("ADBMS (Advanced DBMS)"):
     st.session_state.manual = "ADBMS_Manual.pdf"
 
+# Initialize manual path in session state
 if 'manual' not in st.session_state:
     st.session_state.manual = None
 
 if st.session_state.manual:
     st.info(f"Selected: {st.session_state.manual.replace('_Manual.pdf', '')}")
-    st.markdown("---")
     
-    student_name = st.text_input("Full Student Name:")
-    student_usn = st.text_input("University Seat Number (USN):")
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    student_name = col1.text_input("Full Student Name:")
+    student_usn = col2.text_input("University Seat Number (USN):")
 
     def create_overlay(name, usn):
         packet = io.BytesIO()
         can = canvas.Canvas(packet, pagesize=letter)
+        
+        # --- PAGE 1: COVER ---
+        can.setFillColorRGB(1, 1, 1)
+        can.rect(100, 380, 420, 50, fill=True, stroke=False) 
         can.setFillColorRGB(0, 0, 0)
         can.setFont("Times-Bold", 14)
-        
-        # Cover Page
         can.drawString(110, 395, name.upper())
         can.drawString(400, 395, usn.upper())
         can.showPage()
         
-        # Certificate Page
+        # --- PAGE 2: CERTIFICATE ---
+        can.setFillColorRGB(1, 1, 1)
+        can.rect(80, 395, 480, 30, fill=True, stroke=False)
+        can.setFillColorRGB(0, 0, 0)
+        can.setFont("Times-Bold", 14)
         can.drawString(90, 400, name.upper())
         can.drawString(400, 400, usn.upper())
-        can.showPage()
         
+        can.showPage()
         can.save()
         packet.seek(0)
         return packet
 
     if st.button("⚡ Generate & Download PDF"):
         if student_name and student_usn and os.path.exists(st.session_state.manual):
-            with st.spinner("Compiling..."):
+            with st.spinner("Processing..."):
                 overlay_stream = create_overlay(student_name, student_usn)
                 reader = PdfReader(st.session_state.manual)
                 writer = PdfWriter()
@@ -99,8 +81,8 @@ if st.session_state.manual:
                 writer.write(final_io)
                 final_io.seek(0)
                 
-                st.success("✨ Report ready!")
+                st.success("✨ Report Compiled Successfully!")
                 st.download_button("📥 Download Final Report", final_io, 
                                    f"{student_usn.upper()}_Report.pdf", "application/pdf")
         else:
-            st.error("Please ensure you entered your Name, USN, and selected a subject.")
+            st.error(f"Error: Make sure {st.session_state.manual} is uploaded and fields are filled.")
